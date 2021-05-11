@@ -128,7 +128,7 @@ pub fn compute_distance_squared(vector_1: Vector, vector_2: Vector) -> f64 {
 
 type PointPlot = (Element, Element);
 fn export_kmeans_fig(file_name: String, cluster_centers: Vec<Vector>, points_in_clusters: Vec<Vec<Vector>>) {
-    let colors : Vec<&str> = vec!("#35C788", "#DD3355");
+    let colors : Vec<&str> = vec!("#35C788", "#DD3355", "#3388DD", "#101010");
     
     let mut datasets : Vec<(Vec<PointPlot>, PointStyle)> = Vec::new();
     // Deal with clusters
