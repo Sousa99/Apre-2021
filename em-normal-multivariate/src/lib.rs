@@ -49,7 +49,7 @@ impl EMMultivariate {
                 
                 // Do Calculations
                 let prior = parameter.prior;
-                let likelihood = compute_likelihood(point.clone(), parameter.mean.clone(), parameter.covariance.clone());
+                let likelihood = compute_likelihood(self.dimension as Element, point.clone(), parameter.mean.clone(), parameter.covariance.clone());
                 let joint_probability = compute_joint_probability(prior, likelihood);
                 
                 // Print Results
@@ -176,14 +176,14 @@ pub fn build_em_multivariate(dimension: usize, x: Vec<Matrix>, priors: Vec<f64>,
 }
 
 // ============================= UTIL FUNCTIONS =============================
-fn compute_likelihood(x: Matrix, mean: Matrix, covariance: Matrix) -> Element {
+fn compute_likelihood(dimension: Element, x: Matrix, mean: Matrix, covariance: Matrix) -> Element {
     let sub = x - mean;
     let cov_determinant = covariance.determinant();
     let cov_inverse = covariance.cholesky().unwrap().inverse();
     
     let exponential_argument = -0.5 * (sub).transpose() * cov_inverse * (sub);
 
-    let result = ( 1.0 / (2.0 * PI)) * ( 1.0 / cov_determinant) * (exponential_argument[(0, 0)]).exp();
+    let result = ((2.0 * PI).powf(- dimension / 2.0)) * ( cov_determinant.powf(-0.5)) * (exponential_argument[(0, 0)]).exp();
     return result;
 }
 
