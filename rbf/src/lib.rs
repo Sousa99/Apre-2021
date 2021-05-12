@@ -23,7 +23,6 @@ impl RBF {
 
         // Split Radial Matrix by Row
         let radial_matrix_split = split_matrix_by_row(radial_matrix, self.number_points, self.number_clusters + 1);
-        for line in radial_matrix_split.iter() { println!("{}", line); }
 
         // Store weights
         let mut weights = self.initial_weights.clone();
@@ -91,7 +90,8 @@ pub fn cross_entropy_sigmoid_update(previous_weights: Matrix, radial_matrix: Vec
     let mut new_weights = previous_weights.clone();
     for (point, &target) in radial_matrix.iter().zip(targets.iter()) {
 
-        let current_computation = learning_rate * point * (target - sigmoid(previous_weights.clone(), point.clone()));
+        let output = sigmoid(previous_weights.clone(), point.clone());
+        let current_computation = learning_rate * point * (target - output);
         new_weights = new_weights + current_computation;
     }
 
