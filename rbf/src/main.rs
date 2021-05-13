@@ -41,8 +41,22 @@ fn main() {
     let cluster_sigmas = load_cluster_sigmas(number_clusters as i32);
     println!();
 
-    let problem : lib::RBF = lib::build_rbf(number_points, number_clusters, x, targets, initial_weights, learning_rate, cluster_centers, cluster_sigmas);
+    let mut problem : lib::RBF = lib::build_rbf(number_points, number_clusters, x, targets, initial_weights, learning_rate, cluster_centers, cluster_sigmas);
     problem.do_n_iterations(iterations);
+
+    // Get number of points to test
+    line = "What is the number of points to test the network?";
+    let buffer = ask_for_input(line);
+    let number_points_to_test : usize = buffer.trim().parse().unwrap();
+
+    // Load Points to test
+    let x_test = load_x(number_points_to_test as i32, dimension);
+    println!();
+    
+    println!("=============== Testing Points ===============");
+    println!();
+    // Run points through network
+    problem.run_points(x_test);
 }
 
 pub fn ask_for_input(line: &str) -> String {
