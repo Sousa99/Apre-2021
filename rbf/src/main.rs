@@ -14,6 +14,11 @@ fn main() {
     line = "What dimension are we dealing with?";
     let buffer = ask_for_input(line);
     let dimension : usize = buffer.trim().parse().unwrap();
+
+    // Get stochastic
+    line = "Implement stochastic method?";
+    let buffer = ask_for_input(line);
+    let stochastic : bool = buffer.trim().parse().unwrap();
     
     // Get number of points
     line = "What is the number of points given?";
@@ -42,7 +47,8 @@ fn main() {
     println!();
 
     let mut problem : lib::RBF = lib::build_rbf(number_points, number_clusters, x, targets, initial_weights, learning_rate, cluster_centers, cluster_sigmas);
-    problem.do_n_iterations(iterations);
+    if stochastic { problem.do_n_iterations_stochastic(iterations); }
+    else { problem.do_n_iterations(iterations) ;}
 
     // Get number of points to test
     line = "What is the number of points to test the network?";

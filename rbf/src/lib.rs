@@ -35,6 +35,27 @@ impl RBF {
         }
     }
 
+    pub fn do_n_iterations_stochastic(&mut self, iterations: usize) {
+        // Compute Radial Layer Matrix
+        let radial_matrix = self.compute_radial_matrix(self.x.clone());
+        println!("Radial Matrix = Φ = {}", radial_matrix);
+
+        // Split Radial Matrix by Row
+        let radial_matrix_split = split_matrix_by_row(radial_matrix, self.number_points, self.number_clusters + 1);
+
+        // Store weights
+        println!("Weights at 0: {}", self.weights);
+
+        // Do N iterations to the weights
+        // TODO: Implement more than cross-entropy with sigmoid function
+        for iteration in 0..iterations {
+            for (point_index, (point, &target)) in radial_matrix_split.iter().zip(self.targets.iter()).enumerate() {
+                self.weights = cross_entropy_sigmoid_update_stochastic(self.weights.clone(), point.clone(), target, self.learning_rate);
+                println!("Weights at {} point {}: {}", iteration + 1, point_index + 1, self.weights);
+            }
+        }
+    }
+
     pub fn run_points(&mut self, points_test: Vec<Matrix>) {
         let radial_matrix = self.compute_radial_matrix(points_test.clone());
         println!("Radial Matrix for Test = Φ = {}", radial_matrix);
@@ -113,6 +134,18 @@ fn cross_entropy_sigmoid_update(previous_weights: Matrix, radial_matrix: Vec<Mat
         let current_computation = learning_rate * point * (target - output);
         new_weights = new_weights + current_computation;
     }
+
+    return new_weights;
+}
+
+fn cross_entropy_sigmoid_update_stochastic(previous_weights: Matrix, point: Matrix, target: Element, learning_rate: Element) -> Matrix {
+    
+    let mut new_weights = previous_weights.clone();
+
+    let output = sigmoid(previous_weights.clone(), point.clone());
+    println!("Output: {}", output);
+    let current_computation = learning_rate * point * (target - output);
+    new_weights = new_weights + current_computation;
 
     return new_weights;
 }
