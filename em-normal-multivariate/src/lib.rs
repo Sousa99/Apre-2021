@@ -27,10 +27,16 @@ impl EMMultivariate {
     pub fn do_iteration(&mut self) {
         self.step = self.step + 1;
         println!("==================================== STEP {} ====================================", self.step);
-
+        
         let posteriors = self.do_e_step();
+        self.compute_data_probability(false);
         let new_params = self.do_m_step(posteriors);
         self.parameters = new_params;
+    }
+
+    pub fn compute_final_data_probability(&self) {
+        println!("==================================== FINAL DATA PROBABILITY COMPUTATION ====================================");
+        self.compute_data_probability(true);
     }
 
     fn do_e_step(&mut self) -> PosteriorsReturn {
@@ -149,6 +155,45 @@ impl EMMultivariate {
         }
 
         return new_params;
+    }
+
+    fn compute_data_probability(&self, print: bool) {
+
+        let mut probability : Element = 1.0;
+        for (point_index, point) in self.x.iter().enumerate() {
+
+            if print {
+                println!();
+                println!("- For x({}):", point_index + 1);
+            }
+
+            let mut sum_joint_probabilities : Element = 0.0;
+            
+            for (cluster_index, parameter) in self.parameters.iter().enumerate() {
+                if print { println!("\t- For Cluster = {}:", cluster_index + 1) }
+                
+                // Do Calculations
+                let prior = parameter.prior;
+                let likelihood = compute_likelihood(self.dimension as Element, point.clone(), parameter.mean.clone(), parameter.covariance.clone());
+                let joint_probability = compute_joint_probability(prior, likelihood);
+                
+                // Print Results
+                if print {
+                    println!("\t\t- Prior: p(C = {}) = {}:", cluster_index + 1, prior);
+                    println!("\t\t- Likelihood: p(x^({}) | C = {}) = {}:", point_index + 1, cluster_index + 1, likelihood);
+                    println!("\t\t- Joint Probability: p(C = {}, x^({})) = {}:", cluster_index + 1, point_index + 1, joint_probability);
+                }
+
+                // Update stored values
+                sum_joint_probabilities = sum_joint_probabilities + joint_probability;
+            }
+
+            probability = probability * sum_joint_probabilities;
+        }
+
+        println!();
+        println!("Data Probability = {}", probability);
+        println!();
     }
 }
 

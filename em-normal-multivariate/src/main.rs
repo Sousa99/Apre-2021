@@ -41,6 +41,7 @@ fn main() {
         problem.do_iteration();
         println!();
     }
+    problem.compute_final_data_probability();
 }
 
 pub fn ask_for_input(line: &str) -> String {
