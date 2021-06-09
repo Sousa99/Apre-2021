@@ -27,11 +27,11 @@ impl ClosedForm {
 
         // Auxiliary values
         let points_transpose = self.points.clone().transpose();
-        //println!("X^T = {}", points_transpose);
+        println!("X^T = {}", points_transpose);
         let squared_points = points_transpose.clone() * self.points.clone();
-        //println!("(X^T * X) = {}", squared_points);
+        println!("(X^T * X) = {}", squared_points);
         let inverse_squared_points = squared_points.cholesky().unwrap().inverse();
-        //println!("(X^T * X)^-1 = {}", inverse_squared_points);
+        println!("(X^T * X)^-1 = {}", inverse_squared_points);
 
         let weights = match (self.error_function, self.activation_function) {
             (ErrorFunctionType::SquaredError, ActivationFunctionType::Linear) => inverse_squared_points * points_transpose.clone() * self.target.clone(),
