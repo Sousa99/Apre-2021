@@ -15,6 +15,7 @@ enum IterationType {
 #[derive(Copy, Clone)]
 enum ErrorFunctionType {
     HalfSumSquaredError,
+    CrossEntropy,
 }
 
 #[allow(dead_code)]
@@ -22,6 +23,7 @@ enum ErrorFunctionType {
 enum ActivationFunctionType {
     Sigmoid,
     HyperbolicTangent,
+    Softmax,
 }
 
 // ================================== START DEFINE PARAMETERS ==================================
@@ -185,6 +187,12 @@ impl Network {
 
                         (xs.get(rev_layer_index).unwrap() - target.clone()).component_mul(&difference_one)
                     },
+
+                    (ErrorFunctionType::CrossEntropy, ActivationFunctionType::Softmax) => {
+                        xs.get(rev_layer_index).unwrap() - target.clone()
+                    },
+
+                    _ => panic!("OPERATION NOT IMPLEMENTED"),
                 };
 
                 deltas_reversed.push(delta);
@@ -216,6 +224,8 @@ impl Network {
 
                         (weight.transpose() * last_delta).component_mul(&difference_one)
                     },
+
+                    _ => panic!("OPERATION NOT IMPLEMENTED"),
                 };
 
                 deltas_reversed.push(delta);
@@ -267,7 +277,7 @@ impl Network {
         // Fix deltas and xs
         let mut fixed_deltas: Vec<Vec<Vector>> = Vec::new();
         let mut fixed_xs: Vec<Vec<Vector>> = Vec::new();
-        for index in 0..self.layers.len() {
+        for _ in 0..self.layers.len() {
 
             let mut tmp_deltas: Vec<Vector> = Vec::new();
             for point_deltas in all_deltas.iter_mut() { tmp_deltas.push(point_deltas.remove(0)) }
@@ -332,6 +342,7 @@ impl Network {
         print!("E (t, x^[{}]) = ", self.layers.len());
         match self.error_function {
             ErrorFunctionType::HalfSumSquaredError => println!("1/2 ( x^[{}] - t )^2", self.layers.len()),
+            ErrorFunctionType::CrossEntropy => println!("- Σ ti * log( xi^[{}] )", self.layers.len()),
         }
         println!();
 
@@ -342,6 +353,7 @@ impl Network {
         print!("dE (t, x^[{}]) / dx^[{}] = ", self.layers.len(), self.layers.len());
         match self.error_function {
             ErrorFunctionType::HalfSumSquaredError => println!("( x^[{}] - t )", self.layers.len()),
+            ErrorFunctionType::CrossEntropy => println!("- Σ ti / xi^[{}]", self.layers.len())
         }
         println!();
 
@@ -353,6 +365,7 @@ impl Network {
             match layer.function {
                 ActivationFunctionType::Sigmoid => println!("sigmoid(z^[{}]) (1 - sigmoid(z^[{}]))", rev_layer_index, rev_layer_index),
                 ActivationFunctionType::HyperbolicTangent => println!("(1 - tanh(z^[{}])^2)", rev_layer_index),
+                ActivationFunctionType::Softmax => println!("xi^[{}] * (1 - xi^[{}]) - xi * xj", rev_layer_index, rev_layer_index),
             }
 
             print!("dz^[{}] (W^[{}], b^[{}], x^[{}]) / dW^[{}] = ", rev_layer_index, rev_layer_index, rev_layer_index, rev_layer_index - 1, rev_layer_index);
@@ -409,6 +422,7 @@ fn compute_x(z: &Vector, function_type: ActivationFunctionType) -> Vector {
     return match function_type {
         ActivationFunctionType::Sigmoid => apply_function_to_vector(z, sigmoid),
         ActivationFunctionType::HyperbolicTangent => apply_function_to_vector(z, hyperbolic_tangent),
+        ActivationFunctionType::Softmax => softmax(z),
     } 
 }
 
@@ -419,6 +433,21 @@ fn square(value: Element) -> Element {
 fn sigmoid(value: Element) -> Element {
     let denominator = 1.0 + (- value).exp();
     return 1.0 / denominator;
+}
+
+fn softmax(vector: &Vector) -> Vector {
+
+    let mut new_vector_values : Vec<Element> = Vec::new();
+    let mut sum : Element = 0.0;
+    for &value in vector.iter() {
+        let new_value = value.exp();
+        sum = sum + new_value;
+        new_vector_values.push(new_value);
+    }
+
+    let mut new_vector : Vector = Vector::from_vec(new_vector_values);
+    new_vector = new_vector / sum;
+    return new_vector;
 }
 
 fn hyperbolic_tangent(value: Element) -> Element {
