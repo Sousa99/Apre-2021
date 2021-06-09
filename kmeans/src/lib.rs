@@ -43,6 +43,9 @@ impl KMeans {
             }
         }
 
+        println!("Intra-Cluster distance = {} (using squared distance)", self.compute_intra_cluster_distance());
+        println!("Inter-Cluster distance = {} (using squared distance)", self.compute_inter_cluster_distance());
+
     }
 
     fn compute_clusters(&self) -> Vec<Vec<Vector>> {
@@ -73,6 +76,32 @@ impl KMeans {
         }
 
         return clusters;
+    }
+
+    fn compute_intra_cluster_distance(&self) -> f64 {
+        let mut distance : f64 = 0.0;
+        let points_in_clusters = self.compute_clusters();
+
+        for (cluster, points) in self.cluster_centers.iter().zip(points_in_clusters.iter()) {
+            for point in points { distance = distance + compute_distance_squared(point.clone(), cluster.clone()) }
+        }
+
+        return distance;
+    }
+
+    fn compute_inter_cluster_distance(&self) -> f64 {
+        let mut distance : f64 = 0.0;
+        let number_clusters : usize = self.cluster_centers.len();
+
+        for index_a in 0..number_clusters {
+            let cluster_a = self.cluster_centers.get(index_a).unwrap();
+            for index_b in 0..number_clusters {
+                let cluster_b = self.cluster_centers.get(index_b).unwrap();
+                distance = distance + compute_distance_squared(cluster_a.clone(), cluster_b.clone());
+            }
+        }
+
+        return distance / number_clusters.pow(2) as f64;
     }
 
     fn update_cluster_centers(&mut self, points_in_clusters: Vec<Vec<Vector>>) -> bool {
