@@ -1,4 +1,4 @@
-use nalgebra::{DVector};
+use nalgebra::{DVector, DMatrix};
 use plotlib::page::Page;
 use plotlib::repr::Plot;
 use plotlib::style::{PointMarker, PointStyle};
@@ -6,6 +6,7 @@ use plotlib::view::ContinuousView;
 
 pub type Element = f64;
 pub type Vector = DVector<Element>;
+pub type Matrix = DMatrix<Element>;
 
 pub struct KMeans {
     export_image: bool,
@@ -17,7 +18,7 @@ impl KMeans {
 
     pub fn do_loop_iterations(&mut self, iterations: usize) {
         for iteration in 0..iterations {
-            let points_in_clusters = self.compute_clusters();
+            let (points_in_clusters, distance) = self.compute_clusters();
             
             // Export before cluster centers update
             if self.export_image {
@@ -28,10 +29,12 @@ impl KMeans {
             let converged = self.update_cluster_centers(points_in_clusters.clone());
             if converged {
                 println!("Result converged after {} iterations!", iteration);
+                println!();
                 break;
             }
 
             println!(" ===================== Iteration {} =====================", iteration);
+            println!("Distance Matrix: (using squared distance) {}", distance);
             for (cluster_index, cluster_center) in self.cluster_centers.iter().enumerate() {
                 println!("C{}: {}", cluster_index + 1, cluster_center);
             }
@@ -48,9 +51,10 @@ impl KMeans {
 
     }
 
-    fn compute_clusters(&self) -> Vec<Vec<Vector>> {
+    fn compute_clusters(&self) -> (Vec<Vec<Vector>>, Matrix) {
         let mut clusters : Vec<Vec<Vector>> = Vec::new();
         let number_clusters : usize = self.cluster_centers.len();
+        let mut distances_vec : Vec<Element> = Vec::new();
 
         // Initialize every cluster as an empty list
         for _ in 0..number_clusters { clusters.push(Vec::new()); }
@@ -62,6 +66,7 @@ impl KMeans {
             for (cluster_index, cluster_center) in self.cluster_centers.iter().enumerate() {
 
                 let distance_to_cluster = compute_distance_squared(point.clone(), cluster_center.clone());
+                distances_vec.push(distance_to_cluster);
                 match min_cluster {
                     Some((_, min_distance)) if distance_to_cluster < min_distance => min_cluster = Some((cluster_index, distance_to_cluster)),
                     Some(_) => {},
@@ -75,12 +80,14 @@ impl KMeans {
             }
         }
 
-        return clusters;
+        let distance_matrix : Matrix = Matrix::from_vec(self.cluster_centers.len(), self.x.len(), distances_vec);
+
+        return (clusters, distance_matrix);
     }
 
     fn compute_intra_cluster_distance(&self) -> f64 {
         let mut distance : f64 = 0.0;
-        let points_in_clusters = self.compute_clusters();
+        let (points_in_clusters, _) = self.compute_clusters();
 
         for (cluster, points) in self.cluster_centers.iter().zip(points_in_clusters.iter()) {
             for point in points { distance = distance + compute_distance_squared(point.clone(), cluster.clone()) }
