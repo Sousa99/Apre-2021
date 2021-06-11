@@ -21,6 +21,7 @@ enum ErrorFunctionType {
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
 enum ActivationFunctionType {
+    Linear,
     Sigmoid,
     HyperbolicTangent,
     Softmax,
@@ -33,8 +34,8 @@ const ERROR_FUNCTION : ErrorFunctionType = ErrorFunctionType::HalfSumSquaredErro
 
 fn get_layers() -> Vec<Layer> {
     return vec![
-        build_layer((3, 5), 0.1, 0.0, ActivationFunctionType::Sigmoid),
-        build_layer((2, 3), 0.1, 0.0, ActivationFunctionType::Sigmoid),
+        build_layer((2, 3), 1.0, 0.0, ActivationFunctionType::Linear),
+        build_layer((3, 2), 1.0, 0.0, ActivationFunctionType::Linear),
     ];
 }
 
@@ -170,6 +171,10 @@ impl Network {
 
             if layer_index == 0 {
                 let delta : Vector = match (self.error_function, layer.function) {
+                    (ErrorFunctionType::HalfSumSquaredError, ActivationFunctionType::Linear) => {
+                        xs.get(rev_layer_index).unwrap() - target.clone()
+                    },
+
                     (ErrorFunctionType::HalfSumSquaredError, ActivationFunctionType::Sigmoid) => {
                         let sigmoid_vector = apply_function_to_vector(zs.get(rev_layer_index - 1).unwrap(), sigmoid);
                         let dimension = sigmoid_vector.shape().0;
@@ -199,6 +204,13 @@ impl Network {
 
             } else {
                 let delta : Vector = match layer.function {
+                    ActivationFunctionType::Linear => {
+                        let last_delta = deltas_reversed.last().unwrap();
+                        let weight = &self.layers.get(rev_layer_index).unwrap().weights;
+
+                        weight.transpose() * last_delta
+                    },
+
                     ActivationFunctionType::Sigmoid => {
                         let last_delta = deltas_reversed.last().unwrap();
 
@@ -363,6 +375,7 @@ impl Network {
 
             print!("dx^[{}] (z^[{}]) / dz^[{}] = ", rev_layer_index, rev_layer_index, rev_layer_index);
             match layer.function {
+                ActivationFunctionType::Linear => println!("1"),
                 ActivationFunctionType::Sigmoid => println!("sigmoid(z^[{}]) (1 - sigmoid(z^[{}]))", rev_layer_index, rev_layer_index),
                 ActivationFunctionType::HyperbolicTangent => println!("(1 - tanh(z^[{}])^2)", rev_layer_index),
                 ActivationFunctionType::Softmax => println!("xi^[{}] * (1 - xi^[{}]) - xi * xj", rev_layer_index, rev_layer_index),
@@ -420,6 +433,7 @@ fn compute_z(weights: &Matrix, point: &Vector, bias: &Vector) -> Vector {
 
 fn compute_x(z: &Vector, function_type: ActivationFunctionType) -> Vector {
     return match function_type {
+        ActivationFunctionType::Linear => z.clone(),
         ActivationFunctionType::Sigmoid => apply_function_to_vector(z, sigmoid),
         ActivationFunctionType::HyperbolicTangent => apply_function_to_vector(z, hyperbolic_tangent),
         ActivationFunctionType::Softmax => softmax(z),
