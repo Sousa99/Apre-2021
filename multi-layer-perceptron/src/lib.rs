@@ -25,6 +25,7 @@ enum ActivationFunctionType {
     Sigmoid,
     HyperbolicTangent,
     Softmax,
+    Exp01,
 }
 
 // ================================== START DEFINE PARAMETERS ==================================
@@ -34,8 +35,8 @@ const ERROR_FUNCTION : ErrorFunctionType = ErrorFunctionType::HalfSumSquaredErro
 
 fn get_layers() -> Vec<Layer> {
     return vec![
-        build_layer((2, 3), 1.0, 0.0, ActivationFunctionType::Linear),
-        build_layer((3, 2), 1.0, 0.0, ActivationFunctionType::Linear),
+        build_layer((3, 5), 1.0, 0.0, ActivationFunctionType::Exp01),
+        build_layer((2, 3), 1.0, 0.0, ActivationFunctionType::Exp01),
     ];
 }
 
@@ -197,6 +198,13 @@ impl Network {
                         xs.get(rev_layer_index).unwrap() - target.clone()
                     },
 
+                    (ErrorFunctionType::HalfSumSquaredError, ActivationFunctionType::Exp01) => {
+                        let exponential = apply_function_to_vector(zs.get(rev_layer_index - 1).unwrap(), exponential01);
+                        let exponential_derivatice = 0.1 * exponential;
+
+                        (xs.get(rev_layer_index).unwrap() - target.clone()).component_mul(&exponential_derivatice)
+                    },
+
                     _ => panic!("OPERATION NOT IMPLEMENTED"),
                 };
 
@@ -235,6 +243,17 @@ impl Network {
                         let weight = &self.layers.get(rev_layer_index).unwrap().weights;
 
                         (weight.transpose() * last_delta).component_mul(&difference_one)
+                    },
+
+                    ActivationFunctionType::Exp01 => {
+                        let last_delta = deltas_reversed.last().unwrap();
+
+                        let exponential = apply_function_to_vector(zs.get(rev_layer_index - 1).unwrap(), exponential01);
+                        let exponential_derivatice = 0.1 * exponential;
+
+                        let weight = &self.layers.get(rev_layer_index).unwrap().weights;
+
+                        (weight.transpose() * last_delta).component_mul(&exponential_derivatice)
                     },
 
                     _ => panic!("OPERATION NOT IMPLEMENTED"),
@@ -379,6 +398,7 @@ impl Network {
                 ActivationFunctionType::Sigmoid => println!("sigmoid(z^[{}]) (1 - sigmoid(z^[{}]))", rev_layer_index, rev_layer_index),
                 ActivationFunctionType::HyperbolicTangent => println!("(1 - tanh(z^[{}])^2)", rev_layer_index),
                 ActivationFunctionType::Softmax => println!("xi^[{}] * (1 - xi^[{}]) - xi * xj", rev_layer_index, rev_layer_index),
+                ActivationFunctionType::Exp01 => println!("exp(0.1 * z^[{}])", rev_layer_index),
             }
 
             print!("dz^[{}] (W^[{}], b^[{}], x^[{}]) / dW^[{}] = ", rev_layer_index, rev_layer_index, rev_layer_index, rev_layer_index - 1, rev_layer_index);
@@ -437,6 +457,7 @@ fn compute_x(z: &Vector, function_type: ActivationFunctionType) -> Vector {
         ActivationFunctionType::Sigmoid => apply_function_to_vector(z, sigmoid),
         ActivationFunctionType::HyperbolicTangent => apply_function_to_vector(z, hyperbolic_tangent),
         ActivationFunctionType::Softmax => softmax(z),
+        ActivationFunctionType::Exp01 => apply_function_to_vector(z, exponential01),
     } 
 }
 
@@ -447,6 +468,10 @@ fn square(value: Element) -> Element {
 fn sigmoid(value: Element) -> Element {
     let denominator = 1.0 + (- value).exp();
     return 1.0 / denominator;
+}
+
+fn exponential01(value: Element) -> Element {
+    return (0.1 * value).exp();
 }
 
 fn softmax(vector: &Vector) -> Vector {
